@@ -107,7 +107,7 @@ export BILIBILI_COOKIES="$(cat cookies.txt)"
 6. 🤖 **总结** — AI 生成要点摘要 + 详细文字版
 7. 📄 **输出** — 在当前目录保存 `.md` 报告
 
-## Related Projects
+## 🔗 相关项目
 
 - [youtube-summary](https://github.com/jianhu-chen/youtube-summary) — 将 YouTube 视频转录为 Markdown 报告
 

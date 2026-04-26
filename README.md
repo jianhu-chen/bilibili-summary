@@ -107,7 +107,7 @@ Missing dependencies will be auto-installed by the agent during the first run.
 6. 🤖 **Summarize** — AI generates Highlights + detailed written transcript
 7. 📄 **Output** — Saves a `.md` report in the current directory
 
-## Related Projects
+## 🔗 Related Projects
 
 - [youtube-summary](https://github.com/jianhu-chen/youtube-summary) — Transcribe YouTube videos into Markdown reports
 
