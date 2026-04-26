@@ -43,7 +43,7 @@ import sys
 import threading
 import time
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 # --- Configuration ---
 
@@ -299,7 +299,7 @@ def cmd_prepare(url, workdir, lang_hint=None):
     # Fetch metadata
     t_meta = time.time()
     eprint("[Prepare] Step 1/3: Fetching video metadata...")
-    cmd = ["yt-dlp", "-j", "--no-download", "--cookies", cookie_file, url]
+    cmd = ["yt-dlp", "-j", "--no-download", "--no-playlist", "--cookies", cookie_file, url]
     result = run_cmd(cmd)
     if result.returncode != 0:
         _check_antiscraping(result)
@@ -335,6 +335,7 @@ def cmd_prepare(url, workdir, lang_hint=None):
         "--write-subs", "--write-auto-subs",
         "--sub-langs", ".*",
         "--skip-download",
+        "--no-playlist",
         "-o", os.path.join(subs_dir, "sub"),
         "--cookies", cookie_file,
         url,
