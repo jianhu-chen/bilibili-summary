@@ -43,7 +43,7 @@ import sys
 import threading
 import time
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # --- Configuration ---
 
@@ -211,9 +211,64 @@ def parse_srt_to_text(srt_path):
     return "\n".join(texts)
 
 
+def _parse_subtitle_info(path):
+    """Parse subtitle filename to extract (lang_code, is_auto, path)."""
+    basename = os.path.basename(path)
+    stem = os.path.splitext(basename)[0]  # e.g. "sub.zh" or "sub.ai-en"
+    parts = stem.split(".")
+    if len(parts) >= 2:
+        lang_part = parts[-1]  # "zh", "en", "ai-zh", "ai-en"
+        if lang_part.startswith("ai-"):
+            return lang_part[3:], True, path
+        return lang_part, False, path
+    return "unknown", False, path
+
+
+def select_subtitle(srt_files, lang_hint=None):
+    """Select the best subtitle file based on language preference.
+
+    Priority: manual > auto-generated within the preferred language.
+    Default language for Bilibili content: zh (Chinese).
+    """
+    if not srt_files:
+        return None
+
+    if len(srt_files) == 1:
+        eprint(f"[Subtitle] Only one subtitle available: {os.path.basename(srt_files[0])}")
+        return srt_files[0]
+
+    parsed = [_parse_subtitle_info(f) for f in srt_files]
+    for lang, is_auto, path in parsed:
+        kind = "auto" if is_auto else "manual"
+        eprint(f"[Subtitle]   {os.path.basename(path)}: lang={lang}, type={kind}")
+
+    available_langs = {lang for lang, _, _ in parsed}
+    target_lang = lang_hint if lang_hint and lang_hint in available_langs else None
+
+    if target_lang is None:
+        if "zh" in available_langs:
+            target_lang = "zh"
+        else:
+            target_lang = sorted(available_langs)[0]
+            eprint(f"[Subtitle] Preferred language not available, using: {target_lang}")
+
+    eprint(f"[Subtitle] Target language: {target_lang}")
+
+    target_files = [(lang, is_auto, path) for lang, is_auto, path in parsed if lang == target_lang]
+    if target_files:
+        target_files.sort(key=lambda x: x[1])  # manual (False) before auto (True)
+        _, _, best = target_files[0]
+        eprint(f"[Subtitle] Selected: {os.path.basename(best)}")
+        return best
+
+    fallback = sorted(srt_files)[0]
+    eprint(f"[Subtitle] No match for target language, fallback: {os.path.basename(fallback)}")
+    return fallback
+
+
 # --- Step 1: prepare ---
 
-def cmd_prepare(url, workdir):
+def cmd_prepare(url, workdir, lang_hint=None):
     t_start = time.time()
     eprint(f"[Prepare] Processing URL: {url}")
     eprint(f"[Prepare] Working directory: {workdir}")
@@ -289,8 +344,7 @@ def cmd_prepare(url, workdir):
     srt_files = glob.glob(os.path.join(subs_dir, "*.srt"))
     if srt_files:
         eprint(f"[Prepare] Found {len(srt_files)} subtitle file(s)")
-        # Use the first subtitle file
-        srt_path = srt_files[0]
+        srt_path = select_subtitle(srt_files, lang_hint=lang_hint)
         eprint(f"[Prepare] Parsing subtitle: {os.path.basename(srt_path)}")
         try:
             transcript = parse_srt_to_text(srt_path)
@@ -648,7 +702,7 @@ def cmd_cleanup(workdir):
 def main():
     if len(sys.argv) < 2:
         eprint("Usage:")
-        eprint(f"  {sys.argv[0]} prepare <bilibili_url> <workdir>")
+        eprint(f"  {sys.argv[0]} prepare <bilibili_url> <workdir> [--lang zh|en]")
         eprint(f"  {sys.argv[0]} transcribe-all <workdir>")
         eprint(f"  {sys.argv[0]} transcribe <workdir> <chunk_index>")
         eprint(f"  {sys.argv[0]} collect <workdir>")
@@ -664,9 +718,16 @@ def main():
 
     if command == "prepare":
         if len(sys.argv) < 4:
-            eprint(f"Usage: {sys.argv[0]} prepare <bilibili_url> <workdir>")
+            eprint(f"Usage: {sys.argv[0]} prepare <bilibili_url> <workdir> [--lang zh|en]")
             sys.exit(2)
-        cmd_prepare(sys.argv[2], sys.argv[3])
+        lang_hint = None
+        for arg in sys.argv[4:]:
+            if arg.startswith("--lang="):
+                lang_hint = arg.split("=", 1)[1].strip()
+                if lang_hint not in ("zh", "en"):
+                    eprint(f"[Warn] Unsupported language hint: {lang_hint}, ignoring")
+                    lang_hint = None
+        cmd_prepare(sys.argv[2], sys.argv[3], lang_hint=lang_hint)
 
     elif command == "transcribe-all":
         if len(sys.argv) < 3:

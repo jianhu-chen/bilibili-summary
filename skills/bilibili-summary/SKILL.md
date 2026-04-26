@@ -34,8 +34,13 @@ Remember `$WORKDIR` — it is used in all subsequent steps.
 
 ### 2. Prepare: fetch metadata + try subtitles (or fallback to audio download + chunking)
 
+First, detect the user's language preference from `$ARGUMENTS` (the full text beyond the URL):
+- If the arguments mention English (e.g., "in English", "英文", "英语"), set `LANG_HINT="--lang=en"`
+- If the arguments mention Chinese or contain Chinese characters, set `LANG_HINT="--lang=zh"`
+- Otherwise, leave `LANG_HINT=""` (defaults to Chinese for Bilibili content)
+
 ```bash
-python3 "./scripts/transcribe.py" prepare "$1" "$WORKDIR"
+python3 "./scripts/transcribe.py" prepare "$1" "$WORKDIR" $LANG_HINT
 ```
 
 On success, stdout outputs a compact JSON. Key fields:
