@@ -333,8 +333,8 @@ def cmd_prepare(url, workdir, lang_hint=None):
     cmd = [
         "yt-dlp",
         "--write-subs", "--write-auto-subs",
+        "--sub-langs", ".*",
         "--skip-download",
-        "--convert-subs", "srt",
         "-o", os.path.join(subs_dir, "sub"),
         "--cookies", cookie_file,
         url,
